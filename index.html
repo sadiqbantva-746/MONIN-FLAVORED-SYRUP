@@ -427,6 +427,7 @@ select:focus,input:focus{border-color:#7A4B2A;box-shadow:0 0 0 3px #7A4B2A1a}
 
 <div class="topbar"><div class="ticker">🔥 SPECIAL OFFER — MONIN FLAVORED SYRUPS &nbsp; • &nbsp; 🚚 CASH ON DELIVERY &nbsp; • &nbsp; 🛡 EASY RETURN &nbsp; • &nbsp; ⭐ LIMITED TIME OFFER &nbsp; • &nbsp; ORDER NOW →</div></div>
 <div class="rating">★★★★★ 4.9/5 • Premium Flavors • ✓ Cash on Delivery</div>
+<div style="max-width:1120px;margin:12px auto 0;padding:0 20px"><div style="background:#FFF4D8;border:1px solid #E8C96B;border-radius:14px;padding:14px 18px;text-align:center;color:#5A3A16;font-weight:700;line-height:1.7">🎁 FREE TORANI SYRUP OFFER<br><span style="font-weight:600">Minimum Rs. 1,500 purchase → 30ml Torani Syrup FREE</span><br><span style="font-weight:600">Minimum Rs. 2,500 purchase → 50ml Torani Syrup FREE</span><br><small style="font-weight:500">Gift automatically added at checkout</small></div></div>
 
 <header class="header">
   <div class="logo">MONIN <span>SYRUPS</span></div>
@@ -637,6 +638,17 @@ const catalog={
     sizes:{'Standard':{1:0}}
   }
 };
+const GIFT_1500={threshold:1500,size:'30ml',name:'Torani Syrup Gift (30ml)'};
+const GIFT_2500={threshold:2500,size:'50ml',name:'Torani Syrup Gift (50ml)'};
+function getGift(subtotal){
+  if(subtotal>=2500) return GIFT_2500;
+  if(subtotal>=1500) return GIFT_1500;
+  return null;
+}
+function giftText(subtotal){
+  const g=getGift(subtotal);
+  return g ? `🎁 FREE ${g.size} Torani Syrup` : '';
+}
 const form=document.getElementById('orderForm');
 const type=document.getElementById('syrupType');
 const flavor=document.getElementById('flavor');
@@ -694,6 +706,10 @@ function renderCart(){
   cartSubtotalEl.textContent='Rs. '+sub.toLocaleString();
   cartGrandTotalEl.textContent='Rs. '+cartGrandTotal().toLocaleString();
   const cs=document.getElementById('cartShipping'); if(cs) cs.textContent='Rs. '+getShipping().toLocaleString();
+  const gift=getGift(sub);
+  let giftEl=document.getElementById('autoGiftNotice');
+  if(!giftEl){ giftEl=document.createElement('div'); giftEl.id='autoGiftNotice'; giftEl.style.cssText='margin:10px 0;padding:12px 14px;background:#FFF4D8;border:1px solid #E8C96B;border-radius:10px;color:#5A3A16;font-weight:700;text-align:center;'; cartItemsEl.parentElement.appendChild(giftEl); }
+  giftEl.textContent=gift ? `🎁 ${gift.size} Torani Syrup FREE — Gift automatically added` : '🎁 Spend Rs. 1,500 to unlock a FREE 30ml Torani Syrup';
   submitBtn.textContent=cart.length ? 'PLACE ORDER — RS. '+cartGrandTotal().toLocaleString()+' →' : 'PLACE ORDER — ADD ITEM FIRST';
 }
 addCartBtn.addEventListener('click',()=>{
@@ -727,12 +743,14 @@ form.addEventListener('submit',function(e){
   e.preventDefault();
   const subtotal=cartSubtotal();
   const total=cartGrandTotal();
-  const itemsText=cart.map((item,i)=>`${i+1}. ${item.flavor} | ${item.syrup_type} | ${item.size} | Pack of ${item.pack} | Rs. ${item.price}`).join(' || ');
+  const gift=getGift(subtotal);
+  const giftLine=gift ? `🎁 FREE ${gift.size} Torani Syrup` : '';
+  const itemsText=cart.map((item,i)=>`${i+1}. ${item.flavor} | ${item.syrup_type} | ${item.size} | Pack of ${item.pack} | Rs. ${item.price}`).join(' || ')+(giftLine ? ' || '+giftLine : '');
   document.getElementById('processingScreen').style.display='flex';
   const first=cart[0];
   const orderData={
     name:document.getElementById('fullName').value.trim(),phone:phone.value.trim(),address:document.getElementById('address').value.trim(),landmark:document.getElementById('landmark').value.trim(),city:document.getElementById('city').value.trim(),
-    product:'Sipofhappiness Menu Order',syrup_type:first.syrup_type,flavor:first.flavor,size:first.size,quantity:String(first.pack),pack:'Pack of '+first.pack,price:String(subtotal),shipping:String(getShipping()),total:String(total),items:itemsText,cart_items:String(cart.length)
+    product:'Sipofhappiness Menu Order',syrup_type:first.syrup_type,flavor:first.flavor,size:first.size,quantity:String(first.pack),pack:'Pack of '+first.pack,price:String(subtotal),shipping:String(getShipping()),total:String(total),gift:giftLine,items:itemsText,cart_items:String(cart.length)
   };
   if(GOOGLE_SHEET_URL){
     const body=new URLSearchParams(orderData).toString();
@@ -743,6 +761,7 @@ form.addEventListener('submit',function(e){
   document.getElementById('tySize').textContent=cart.map(x=>x.size+' • Pack of '+x.pack).join(' | ');
   document.getElementById('tyQty').textContent=String(cart.length);
   document.getElementById('tyTotal').textContent='Rs. '+total.toLocaleString();
+  if(giftLine) document.getElementById('tyTotal').textContent+=' • '+giftLine;
   document.getElementById('tyWa').href='https://wa.me/923168119291?text='+encodeURIComponent('I placed an order for Sipofhappiness - '+itemsText+' - Total Rs. '+total);
   form.reset(); cart=[]; updateFlavors(); renderCart(); phone.value=''; phone.setCustomValidity('');
   setTimeout(function(){document.getElementById('processingScreen').style.display='none';document.body.classList.add('thankyou-mode');history.replaceState(null,'','#thank-you');window.scrollTo({top:0,behavior:'instant'});},2000);
