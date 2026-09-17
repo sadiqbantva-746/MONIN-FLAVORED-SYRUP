@@ -469,7 +469,13 @@ select:focus,input:focus{border-color:#7A4B2A;box-shadow:0 0 0 3px #7A4B2A1a}
       <select id="syrupType" required>
         <option value="Coffee Syrup">Coffee Syrup</option>
         <option value="Mocktail Syrup">Mocktail Syrup</option>
-        <option value="Sugarfree">Sugarfree</option>
+        <option value="Sugarfree Syrup">Sugarfree Syrup</option>
+        <option value="Frappes">Frappes</option>
+        <option value="Matcha">Matcha</option>
+        <option value="Chocolate & Caramel Sauce">Chocolate & Caramel Sauce</option>
+        <option value="Pistachio & Lotus Sauce">Pistachio & Lotus Sauce</option>
+        <option value="Fruit Purees">Fruit Purees</option>
+        <option value="Torani Syrup">Torani Syrup</option>
       </select>
 
       <label>FLAVOR</label>
@@ -588,15 +594,43 @@ select:focus,input:focus{border-color:#7A4B2A;box-shadow:0 0 0 3px #7A4B2A1a}
 <script>
 const GOOGLE_SHEET_URL='https://script.google.com/macros/s/AKfycbxK4VPLfPpE_fgkykA9n89XW7MJ7qZk7AajqTKJ09ZTUW9tFTP_XN9A4Tf3b6T0WjGMTg/exec';
 const SHIPPING=250;
-const prices={
-  '50ml':{1:650,2:1250,3:1800,4:2200,5:2500,10:4500},
-  '100ml':{1:1300,2:2500,3:3000,4:3600,5:4250,10:8400},
-  '250ml':{1:2000,2:4000,3:5000,4:6500,5:7500}
-};
-const flavors={
-  'Coffee Syrup':['French vanilla','Caramel','Hazelnut','Tiramisu','Salted Caramel','Cheesecake','Creme brulee','Cocoa cookies','Dark chocolate','Coconut','Maple','Popcorn','Butterstoch','toffeenut','Coffee','Pumpkin spice','Toasted marshmallow','Roasted Hazelnut','Roasted Chestnuts','White Chocolate','Ruby Chocolate','Walnut Brownie','Macadamia Nuts'],
-  'Mocktail Syrup':['Blue Lagoona','BlueBerry','RaspBerry','WildBerry','StrawBerry','Passionfruit','GreenApple','Cloudy lemonade','Pina Colada','Peach Ice Tea','RaspBerry Ice Tea','Kiwi','Guava','Mango','Lychee','Peach','Hibicus','Rose'],
-  'Sugarfree':['Vanilla','Caramel','Hazelnut']
+const catalog={
+  'Coffee Syrup':{
+    flavors:['French Vanilla','Caramel','Hazelnut','Tiramisu','Salted Caramel','Cheesecake','Creme Brulee','Cocoa Cookies','Dark Chocolate','Coconut','Maple','Popcorn','Butterscotch','Toffeenut','Coffee','Pumpkin Spice','Toasted Marshmallow','Roasted Hazelnut','Roasted Chestnuts','White Chocolate','Ruby Chocolate','Walnut Brownie','Macadamia Nuts'],
+    sizes:{'50ml':{1:650,2:1250,3:1800,4:2200,5:2500,10:4500},'100ml':{1:1300,2:2500,3:3000,4:3600,5:4250,10:8400},'250ml':{1:2000,2:4000,3:5000,4:6500,5:7500}}
+  },
+  'Mocktail Syrup':{
+    flavors:['Blue Lagoona','BlueBerry','RaspBerry','WildBerry','StrawBerry','Passionfruit','GreenApple','Cloudy Lemonade','Pina Colada','Peach Ice Tea','RaspBerry Ice Tea','Kiwi','Guava','Mango','Lychee','Peach','Hibicus','Rose'],
+    sizes:{'50ml':{1:650,2:1250,3:1800,4:2200,5:2500,10:4500},'100ml':{1:1300,2:2500,3:3000,4:3600,5:4250,10:8400},'250ml':{1:2000,2:4000,3:5000,4:6500,5:7500}}
+  },
+  'Sugarfree Syrup':{
+    flavors:['Vanilla','Caramel','Hazelnut'],
+    sizes:{'50ml':{1:650,2:1250,3:1800,4:2200,5:2500,10:4500},'100ml':{1:1300,2:2500,3:3000,4:3600,5:4250,10:8400},'250ml':{1:2000,2:4000,3:5000,4:6500,5:7500}}
+  },
+  'Frappes':{
+    flavors:['Vanilla','Chocolate'],
+    sizes:{'50g':{1:600},'100g':{1:1000}}
+  },
+  'Matcha':{
+    flavors:['Yoochamatcha'],
+    sizes:{'5g':{1:750},'10g':{1:1400}}
+  },
+  'Chocolate & Caramel Sauce':{
+    flavors:['Chocolate & Caramel Sauce'],
+    sizes:{'50g':{1:500},'80g':{1:650}}
+  },
+  'Pistachio & Lotus Sauce':{
+    flavors:['Pistachio & Lotus Sauce'],
+    sizes:{'50g':{1:600},'100g':{1:900}}
+  },
+  'Fruit Purees':{
+    flavors:['Raspberry','Strawberry','Blueberry','Yuzu'],
+    sizes:{'50g':{1:600},'80g':{1:800}}
+  },
+  'Torani Syrup':{
+    flavors:['Macadamia Nuts','Chocolate Milano','Irish Cream','Peppermint','Raspberry'],
+    sizes:{'Standard':{1:0}}
+  }
 };
 const form=document.getElementById('orderForm');
 const type=document.getElementById('syrupType');
@@ -615,27 +649,37 @@ const cartGrandTotalEl=document.getElementById('cartGrandTotal');
 let cart=[];
 
 function updateFlavors(){
-  flavor.innerHTML=flavors[type.value].map(f=>`<option value="${f}">${f}</option>`).join('');
+  const data=catalog[type.value];
+  flavor.innerHTML=data.flavors.map(f=>`<option value="${f}">${f}</option>`).join('');
+  updateSizes();
+}
+function updateSizes(){
+  const data=catalog[type.value];
+  size.innerHTML=Object.keys(data.sizes).map(s=>`<option value="${s}">${s}</option>`).join('');
+  updatePacks();
 }
 function updatePacks(){
-  const ps=prices[size.value];
+  const ps=catalog[type.value].sizes[size.value];
   pack.innerHTML=Object.keys(ps).map(q=>`<option value="${q}">Pack of ${q}</option>`).join('');
   updatePrice();
 }
 function updatePrice(){
-  const p=prices[size.value][pack.value];
+  const p=catalog[type.value].sizes[size.value][pack.value];
+  const unavailable=(p===0);
   const total=p+SHIPPING;
-  subtotalEl.textContent='Rs. '+p.toLocaleString();
-  totalEl.textContent='Rs. '+total.toLocaleString();
-  submitBtn.textContent=(cart.length ? 'PLACE ORDER — RS. '+cartGrandTotal().toLocaleString()+' →' : 'PLACE ORDER — ADD ITEM FIRST');
-  document.getElementById('priceNote').textContent=`${size.value} • Pack of ${pack.value} • Rs. ${p.toLocaleString()}`;
+  subtotalEl.textContent=unavailable?'Price on request':'Rs. '+p.toLocaleString();
+  totalEl.textContent=unavailable?'Price on request':'Rs. '+total.toLocaleString();
+  submitBtn.textContent=cart.length ? 'PLACE ORDER — RS. '+cartGrandTotal().toLocaleString()+' →' : 'PLACE ORDER — ADD ITEM FIRST';
+  addCartBtn.disabled=unavailable;
+  addCartBtn.style.opacity=unavailable?'0.55':'1';
+  document.getElementById('priceNote').textContent=unavailable ? `${size.value} • Price not listed in supplied menu` : `${size.value} • Pack of ${pack.value} • Rs. ${p.toLocaleString()}`;
 }
 function cartSubtotal(){ return cart.reduce((sum,item)=>sum+item.price,0); }
 function cartGrandTotal(){ return cartSubtotal() + (cart.length ? SHIPPING : 0); }
 function renderCart(){
   cartCountEl.textContent=cart.length+' item'+(cart.length===1?'':'s');
   if(!cart.length){
-    cartItemsEl.innerHTML='<div class="cart-empty">No items added yet. You can mix different flavors, sizes & packs.</div>';
+    cartItemsEl.innerHTML='<div class="cart-empty">No items added yet. You can mix different products, flavors, sizes & packs.</div>';
   }else{
     cartItemsEl.innerHTML=cart.map((item,i)=>`<div class="cart-item"><div><div class="cart-item-title">${item.flavor}</div><div class="cart-item-meta">${item.syrup_type} • ${item.size} • Pack of ${item.pack}</div><button type="button" class="remove-cart" data-index="${i}">Remove</button></div><div class="cart-item-price">Rs. ${item.price.toLocaleString()}</div></div>`).join('');
     cartItemsEl.querySelectorAll('.remove-cart').forEach(btn=>btn.addEventListener('click',()=>{cart.splice(Number(btn.dataset.index),1);renderCart();updatePrice();}));
@@ -646,14 +690,9 @@ function renderCart(){
   submitBtn.textContent=cart.length ? 'PLACE ORDER — RS. '+cartGrandTotal().toLocaleString()+' →' : 'PLACE ORDER — ADD ITEM FIRST';
 }
 addCartBtn.addEventListener('click',()=>{
-  const item={
-    syrup_type:type.value,
-    flavor:flavor.value,
-    size:size.value,
-    pack:Number(pack.value),
-    price:prices[size.value][Number(pack.value)]
-  };
-  cart.push(item);
+  const price=catalog[type.value].sizes[size.value][Number(pack.value)];
+  if(!price){ alert('This Torani item has no price listed in the supplied menu. Please add the price first.'); return; }
+  cart.push({syrup_type:type.value,flavor:flavor.value,size:size.value,pack:Number(pack.value),price});
   renderCart();
   addCartBtn.textContent='✓ ADDED TO CART';
   setTimeout(()=>addCartBtn.textContent='🛒 ADD TO CART',900);
@@ -661,7 +700,7 @@ addCartBtn.addEventListener('click',()=>{
 type.addEventListener('change',updateFlavors);
 size.addEventListener('change',updatePacks);
 pack.addEventListener('change',updatePrice);
-updateFlavors(); updatePacks(); renderCart();
+updateFlavors(); renderCart();
 
 function cleanPhone(){
   phone.value=phone.value.replace(/\D/g,'').slice(0,11);
@@ -674,11 +713,7 @@ phone.addEventListener('paste',()=>setTimeout(cleanPhone,0));
 
 form.addEventListener('submit',function(e){
   cleanPhone();
-  if(!cart.length){
-    e.preventDefault();
-    alert('Please add at least one item to your cart.');
-    return;
-  }
+  if(!cart.length){e.preventDefault();alert('Please add at least one item to your cart.');return;}
   if(!form.checkValidity()){e.preventDefault();form.reportValidity();return;}
   e.preventDefault();
   const subtotal=cartSubtotal();
@@ -687,50 +722,24 @@ form.addEventListener('submit',function(e){
   document.getElementById('processingScreen').style.display='flex';
   const first=cart[0];
   const orderData={
-    name:document.getElementById('fullName').value.trim(),
-    phone:phone.value.trim(),
-    address:document.getElementById('address').value.trim(),
-    landmark:document.getElementById('landmark').value.trim(),
-    city:document.getElementById('city').value.trim(),
-    product:'Monin Flavored Syrup',
-    syrup_type:first.syrup_type,
-    flavor:first.flavor,
-    size:first.size,
-    quantity:String(first.pack),
-    pack:'Pack of '+first.pack,
-    price:String(subtotal),
-    shipping:String(SHIPPING),
-    total:String(total),
-    items:itemsText,
-    cart_items:String(cart.length)
+    name:document.getElementById('fullName').value.trim(),phone:phone.value.trim(),address:document.getElementById('address').value.trim(),landmark:document.getElementById('landmark').value.trim(),city:document.getElementById('city').value.trim(),
+    product:'Sipofhappiness Menu Order',syrup_type:first.syrup_type,flavor:first.flavor,size:first.size,quantity:String(first.pack),pack:'Pack of '+first.pack,price:String(subtotal),shipping:String(SHIPPING),total:String(total),items:itemsText,cart_items:String(cart.length)
   };
-  if(GOOGLE_SHEET_URL && !GOOGLE_SHEET_URL.includes('PASTE_GOOGLE')){
+  if(GOOGLE_SHEET_URL){
     const body=new URLSearchParams(orderData).toString();
     fetch(GOOGLE_SHEET_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},body}).catch(()=>{});
   }
-  document.getElementById('tyProduct').textContent='Monin Flavored Syrup';
+  document.getElementById('tyProduct').textContent='Sipofhappiness Menu Order';
   document.getElementById('tyFlavor').textContent=cart.map(x=>x.flavor).join(', ');
   document.getElementById('tySize').textContent=cart.map(x=>x.size+' • Pack of '+x.pack).join(' | ');
   document.getElementById('tyQty').textContent=String(cart.length);
   document.getElementById('tyTotal').textContent='Rs. '+total.toLocaleString();
-  document.getElementById('tyWa').href='https://wa.me/923168119291?text='+encodeURIComponent('I placed an order for Monin Flavored Syrup - '+itemsText+' - Total Rs. '+total);
-  form.reset();
-  cart=[];
-  updateFlavors(); updatePacks(); renderCart();
-  phone.value=''; phone.setCustomValidity('');
-  setTimeout(function(){
-    document.getElementById('processingScreen').style.display='none';
-    document.body.classList.add('thankyou-mode');
-    history.replaceState(null,'','#thank-you');
-    window.scrollTo({top:0,behavior:'instant'});
-  },2000);
+  document.getElementById('tyWa').href='https://wa.me/923168119291?text='+encodeURIComponent('I placed an order for Sipofhappiness - '+itemsText+' - Total Rs. '+total);
+  form.reset(); cart=[]; updateFlavors(); renderCart(); phone.value=''; phone.setCustomValidity('');
+  setTimeout(function(){document.getElementById('processingScreen').style.display='none';document.body.classList.add('thankyou-mode');history.replaceState(null,'','#thank-you');window.scrollTo({top:0,behavior:'instant'});},2000);
 });
-function showWebsite(e){
-  e.preventDefault();
-  document.body.classList.remove('thankyou-mode');
-  history.replaceState(null,'','#top');
-  document.getElementById('order').scrollIntoView({behavior:'smooth'});
-}
+function showWebsite(e){e.preventDefault();document.body.classList.remove('thankyou-mode');history.replaceState(null,'','#order');document.getElementById('order').scrollIntoView({behavior:'smooth'});}
+if(location.hash==='#thank-you'){document.body.classList.add('thankyou-mode');}
 </script>
 </body>
 </html>
