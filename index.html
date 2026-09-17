@@ -496,7 +496,7 @@ select:focus,input:focus{border-color:#7A4B2A;box-shadow:0 0 0 3px #7A4B2A1a}
         <div class="cart-head"><b>🛒 Your Cart</b><span id="cartCount">0 items</span></div>
         <div id="cartItems"><div class="cart-empty">No items added yet. You can mix different flavors, sizes & packs.</div></div>
         <div class="cart-total-row"><span>Items Total</span><b id="cartSubtotal">Rs. 0</b></div>
-        <div class="cart-total-row"><span>Delivery</span><b>Rs. 250</b></div>
+        <div class="cart-total-row"><span>Delivery</span><b id="cartShipping">Rs. 350</b></div>
         <div class="cart-total-row cart-grand"><span>Grand Total</span><b id="cartGrandTotal">Rs. 250</b></div>
       </div>
 
@@ -504,11 +504,11 @@ select:focus,input:focus{border-color:#7A4B2A;box-shadow:0 0 0 3px #7A4B2A1a}
       <label>PHONE NUMBER</label><input id="phoneNumber" name="phone" required type="tel" inputmode="numeric" pattern="03[0-9]{9}" minlength="11" maxlength="11" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="03XXXXXXXXX" aria-describedby="phoneHelp"><small id="phoneHelp" style="display:block;color:#7A6A5E;font-size:11px;margin-top:4px">Enter a valid Pakistani mobile number (11 digits, e.g. 03001234567)</small>
       <label>HOUSE / STREET ADDRESS</label><input id="address" required placeholder="Complete address" autocomplete="off">
       <label>NEAR FAMOUS PLACE / LANDMARK</label><input id="landmark" placeholder="e.g. Near ABC Market / Masjid" autocomplete="off">
-      <label>CITY</label><input id="city" required placeholder="Enter your city" autocomplete="off">
+      <label>CITY</label><input id="city" required placeholder="Enter your city" autocomplete="off"><small style="display:block;color:#7A6A5E;font-size:11px;margin-top:4px">🚚 Karachi: Rs. 250 &nbsp; • &nbsp; Other Cities: Rs. 350</small>
 
       <div class="total-summary">
         <div class="total-row"><span>Subtotal</span><span id="subtotal">Rs. 650</span></div>
-        <div class="total-row"><span>Shipping</span><span>Rs. 250.00</span></div>
+        <div class="total-row"><span>Shipping</span><span id="shippingAmount">Rs. 350</span></div>
         <div class="total-divider"></div>
         <div class="total-row total-final"><span>Total</span><span>PKR <b id="grandTotal">Rs. 900</b></span></div>
       </div>
@@ -593,7 +593,12 @@ select:focus,input:focus{border-color:#7A4B2A;box-shadow:0 0 0 3px #7A4B2A1a}
 <footer class="footer">© Monin Flavored Syrup • Cash on Delivery • Easy Return</footer>
 <script>
 const GOOGLE_SHEET_URL='https://script.google.com/macros/s/AKfycbxK4VPLfPpE_fgkykA9n89XW7MJ7qZk7AajqTKJ09ZTUW9tFTP_XN9A4Tf3b6T0WjGMTg/exec';
-const SHIPPING=250;
+const KARACHI_SHIPPING=250;
+const OTHER_CITY_SHIPPING=350;
+function getShipping(){
+  const c=(document.getElementById('city')?.value||'').trim().toLowerCase();
+  return c==='karachi' ? KARACHI_SHIPPING : OTHER_CITY_SHIPPING;
+}
 const catalog={
   'Coffee Syrup':{
     flavors:['French Vanilla','Caramel','Hazelnut','Tiramisu','Salted Caramel','Cheesecake','Creme Brulee','Cocoa Cookies','Dark Chocolate','Coconut','Maple','Popcorn','Butterscotch','Toffeenut','Coffee','Pumpkin Spice','Toasted Marshmallow','Roasted Hazelnut','Roasted Chestnuts','White Chocolate','Ruby Chocolate','Walnut Brownie','Macadamia Nuts'],
@@ -666,16 +671,17 @@ function updatePacks(){
 function updatePrice(){
   const p=catalog[type.value].sizes[size.value][pack.value];
   const unavailable=(p===0);
-  const total=p+SHIPPING;
+  const total=p+getShipping();
   subtotalEl.textContent=unavailable?'Price on request':'Rs. '+p.toLocaleString();
   totalEl.textContent=unavailable?'Price on request':'Rs. '+total.toLocaleString();
   submitBtn.textContent=cart.length ? 'PLACE ORDER — RS. '+cartGrandTotal().toLocaleString()+' →' : 'PLACE ORDER — ADD ITEM FIRST';
   addCartBtn.disabled=unavailable;
   addCartBtn.style.opacity=unavailable?'0.55':'1';
+  const shipEl=document.getElementById('shippingAmount'); if(shipEl) shipEl.textContent='Rs. '+getShipping().toLocaleString();
   document.getElementById('priceNote').textContent=unavailable ? `${size.value} • Price not listed in supplied menu` : `${size.value} • Pack of ${pack.value} • Rs. ${p.toLocaleString()}`;
 }
 function cartSubtotal(){ return cart.reduce((sum,item)=>sum+item.price,0); }
-function cartGrandTotal(){ return cartSubtotal() + (cart.length ? SHIPPING : 0); }
+function cartGrandTotal(){ return cartSubtotal() + (cart.length ? getShipping() : 0); }
 function renderCart(){
   cartCountEl.textContent=cart.length+' item'+(cart.length===1?'':'s');
   if(!cart.length){
@@ -687,6 +693,7 @@ function renderCart(){
   const sub=cartSubtotal();
   cartSubtotalEl.textContent='Rs. '+sub.toLocaleString();
   cartGrandTotalEl.textContent='Rs. '+cartGrandTotal().toLocaleString();
+  const cs=document.getElementById('cartShipping'); if(cs) cs.textContent='Rs. '+getShipping().toLocaleString();
   submitBtn.textContent=cart.length ? 'PLACE ORDER — RS. '+cartGrandTotal().toLocaleString()+' →' : 'PLACE ORDER — ADD ITEM FIRST';
 }
 addCartBtn.addEventListener('click',()=>{
@@ -700,6 +707,8 @@ addCartBtn.addEventListener('click',()=>{
 type.addEventListener('change',updateFlavors);
 size.addEventListener('change',updatePacks);
 pack.addEventListener('change',updatePrice);
+const cityInput=document.getElementById('city');
+cityInput.addEventListener('input',()=>{updatePrice();renderCart();});
 updateFlavors(); renderCart();
 
 function cleanPhone(){
@@ -723,7 +732,7 @@ form.addEventListener('submit',function(e){
   const first=cart[0];
   const orderData={
     name:document.getElementById('fullName').value.trim(),phone:phone.value.trim(),address:document.getElementById('address').value.trim(),landmark:document.getElementById('landmark').value.trim(),city:document.getElementById('city').value.trim(),
-    product:'Sipofhappiness Menu Order',syrup_type:first.syrup_type,flavor:first.flavor,size:first.size,quantity:String(first.pack),pack:'Pack of '+first.pack,price:String(subtotal),shipping:String(SHIPPING),total:String(total),items:itemsText,cart_items:String(cart.length)
+    product:'Sipofhappiness Menu Order',syrup_type:first.syrup_type,flavor:first.flavor,size:first.size,quantity:String(first.pack),pack:'Pack of '+first.pack,price:String(subtotal),shipping:String(getShipping()),total:String(total),items:itemsText,cart_items:String(cart.length)
   };
   if(GOOGLE_SHEET_URL){
     const body=new URLSearchParams(orderData).toString();
