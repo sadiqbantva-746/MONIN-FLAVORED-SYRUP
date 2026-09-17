@@ -356,6 +356,22 @@ body.thankyou-mode{background:#FFF4E6;}
 body.thankyou-mode .order{padding:0;min-height:100vh;background:#FFF4E6;}
 body.thankyou-mode #orderCard{display:none;}
 body.thankyou-mode .thankyou-page{display:block;}
+/* ===== CART ===== */
+.add-cart{width:100%;border:0;border-radius:10px;background:#B8753C;color:#fff;padding:13px;font-size:15px;font-weight:800;cursor:pointer;margin:12px 0 10px;box-shadow:0 5px 12px #7A4B2A22;}
+.add-cart:active{transform:translateY(1px)}
+.cart-box{background:#FFF8F0;border:1px solid #E5CDB5;border-radius:12px;padding:13px;margin:0 0 18px;}
+.cart-head{display:flex;justify-content:space-between;align-items:center;color:#5B351F;font-size:15px;margin-bottom:9px;}
+.cart-head span{font-size:11px;color:#8B735F;}
+.cart-empty{font-size:12px;color:#8B7B6C;padding:8px 0 12px;text-align:center;line-height:1.45;}
+.cart-item{border-top:1px solid #E8D8C8;padding:10px 0;display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;}
+.cart-item:first-child{border-top:0;}
+.cart-item-title{font-size:13px;font-weight:800;color:#2A1A12;}
+.cart-item-meta{font-size:11px;color:#776657;margin-top:3px;line-height:1.45;}
+.cart-item-price{font-size:13px;font-weight:800;color:#5E3820;text-align:right;white-space:nowrap;}
+.remove-cart{margin-top:4px;border:0;background:none;color:#A44B2D;font-size:10px;padding:0;cursor:pointer;}
+.cart-total-row{display:flex;justify-content:space-between;border-top:1px solid #E5D3C1;padding:8px 0 0;margin-top:7px;font-size:12px;color:#6B5B4C;}
+.cart-grand{font-size:14px;color:#2A1A12;font-weight:800;}
+.cart-grand b{color:#7A4B2A;}
 @media(max-width:700px){
   .thankyou-page{padding:0 10px 30px;}
   .ty-trust{font-size:10px;padding:10px 6px;white-space:nowrap;}
@@ -469,6 +485,14 @@ select:focus,input:focus{border-color:#7A4B2A;box-shadow:0 0 0 3px #7A4B2A1a}
       <label>PACK QUANTITY</label>
       <select id="pack" required></select>
       <div class="choice-note" id="priceNote">50ml • Pack of 1 • Rs. 650</div>
+      <button type="button" class="add-cart" id="addCartBtn">🛒 ADD TO CART</button>
+      <div class="cart-box" id="cartBox">
+        <div class="cart-head"><b>🛒 Your Cart</b><span id="cartCount">0 items</span></div>
+        <div id="cartItems"><div class="cart-empty">No items added yet. You can mix different flavors, sizes & packs.</div></div>
+        <div class="cart-total-row"><span>Items Total</span><b id="cartSubtotal">Rs. 0</b></div>
+        <div class="cart-total-row"><span>Delivery</span><b>Rs. 250</b></div>
+        <div class="cart-total-row cart-grand"><span>Grand Total</span><b id="cartGrandTotal">Rs. 250</b></div>
+      </div>
 
       <label>FULL NAME</label><input id="fullName" required placeholder="Enter your name" autocomplete="off">
       <label>PHONE NUMBER</label><input id="phoneNumber" name="phone" required type="tel" inputmode="numeric" pattern="03[0-9]{9}" minlength="11" maxlength="11" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="03XXXXXXXXX" aria-describedby="phoneHelp"><small id="phoneHelp" style="display:block;color:#7A6A5E;font-size:11px;margin-top:4px">Enter a valid Pakistani mobile number (11 digits, e.g. 03001234567)</small>
@@ -583,6 +607,12 @@ const phone=document.getElementById('phoneNumber');
 const subtotalEl=document.getElementById('subtotal');
 const totalEl=document.getElementById('grandTotal');
 const submitBtn=document.getElementById('submitBtn');
+const addCartBtn=document.getElementById('addCartBtn');
+const cartItemsEl=document.getElementById('cartItems');
+const cartCountEl=document.getElementById('cartCount');
+const cartSubtotalEl=document.getElementById('cartSubtotal');
+const cartGrandTotalEl=document.getElementById('cartGrandTotal');
+let cart=[];
 
 function updateFlavors(){
   flavor.innerHTML=flavors[type.value].map(f=>`<option value="${f}">${f}</option>`).join('');
@@ -597,13 +627,41 @@ function updatePrice(){
   const total=p+SHIPPING;
   subtotalEl.textContent='Rs. '+p.toLocaleString();
   totalEl.textContent='Rs. '+total.toLocaleString();
-  submitBtn.textContent='PLACE ORDER — RS. '+total.toLocaleString()+' →';
+  submitBtn.textContent=(cart.length ? 'PLACE ORDER — RS. '+cartGrandTotal().toLocaleString()+' →' : 'PLACE ORDER — ADD ITEM FIRST');
   document.getElementById('priceNote').textContent=`${size.value} • Pack of ${pack.value} • Rs. ${p.toLocaleString()}`;
 }
+function cartSubtotal(){ return cart.reduce((sum,item)=>sum+item.price,0); }
+function cartGrandTotal(){ return cartSubtotal() + (cart.length ? SHIPPING : 0); }
+function renderCart(){
+  cartCountEl.textContent=cart.length+' item'+(cart.length===1?'':'s');
+  if(!cart.length){
+    cartItemsEl.innerHTML='<div class="cart-empty">No items added yet. You can mix different flavors, sizes & packs.</div>';
+  }else{
+    cartItemsEl.innerHTML=cart.map((item,i)=>`<div class="cart-item"><div><div class="cart-item-title">${item.flavor}</div><div class="cart-item-meta">${item.syrup_type} • ${item.size} • Pack of ${item.pack}</div><button type="button" class="remove-cart" data-index="${i}">Remove</button></div><div class="cart-item-price">Rs. ${item.price.toLocaleString()}</div></div>`).join('');
+    cartItemsEl.querySelectorAll('.remove-cart').forEach(btn=>btn.addEventListener('click',()=>{cart.splice(Number(btn.dataset.index),1);renderCart();updatePrice();}));
+  }
+  const sub=cartSubtotal();
+  cartSubtotalEl.textContent='Rs. '+sub.toLocaleString();
+  cartGrandTotalEl.textContent='Rs. '+cartGrandTotal().toLocaleString();
+  submitBtn.textContent=cart.length ? 'PLACE ORDER — RS. '+cartGrandTotal().toLocaleString()+' →' : 'PLACE ORDER — ADD ITEM FIRST';
+}
+addCartBtn.addEventListener('click',()=>{
+  const item={
+    syrup_type:type.value,
+    flavor:flavor.value,
+    size:size.value,
+    pack:Number(pack.value),
+    price:prices[size.value][Number(pack.value)]
+  };
+  cart.push(item);
+  renderCart();
+  addCartBtn.textContent='✓ ADDED TO CART';
+  setTimeout(()=>addCartBtn.textContent='🛒 ADD TO CART',900);
+});
 type.addEventListener('change',updateFlavors);
 size.addEventListener('change',updatePacks);
 pack.addEventListener('change',updatePrice);
-updateFlavors(); updatePacks();
+updateFlavors(); updatePacks(); renderCart();
 
 function cleanPhone(){
   phone.value=phone.value.replace(/\D/g,'').slice(0,11);
@@ -616,12 +674,18 @@ phone.addEventListener('paste',()=>setTimeout(cleanPhone,0));
 
 form.addEventListener('submit',function(e){
   cleanPhone();
+  if(!cart.length){
+    e.preventDefault();
+    alert('Please add at least one item to your cart.');
+    return;
+  }
   if(!form.checkValidity()){e.preventDefault();form.reportValidity();return;}
   e.preventDefault();
-  const packQty=Number(pack.value);
-  const price=prices[size.value][packQty];
-  const total=price+SHIPPING;
+  const subtotal=cartSubtotal();
+  const total=cartGrandTotal();
+  const itemsText=cart.map((item,i)=>`${i+1}. ${item.flavor} | ${item.syrup_type} | ${item.size} | Pack of ${item.pack} | Rs. ${item.price}`).join(' || ');
   document.getElementById('processingScreen').style.display='flex';
+  const first=cart[0];
   const orderData={
     name:document.getElementById('fullName').value.trim(),
     phone:phone.value.trim(),
@@ -629,27 +693,30 @@ form.addEventListener('submit',function(e){
     landmark:document.getElementById('landmark').value.trim(),
     city:document.getElementById('city').value.trim(),
     product:'Monin Flavored Syrup',
-    syrup_type:type.value,
-    flavor:flavor.value,
-    size:size.value,
-    quantity:String(packQty),
-    pack:'Pack of '+packQty,
-    price:String(price),
+    syrup_type:first.syrup_type,
+    flavor:first.flavor,
+    size:first.size,
+    quantity:String(first.pack),
+    pack:'Pack of '+first.pack,
+    price:String(subtotal),
     shipping:String(SHIPPING),
-    total:String(total)
+    total:String(total),
+    items:itemsText,
+    cart_items:String(cart.length)
   };
   if(GOOGLE_SHEET_URL && !GOOGLE_SHEET_URL.includes('PASTE_GOOGLE')){
     const body=new URLSearchParams(orderData).toString();
     fetch(GOOGLE_SHEET_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},body}).catch(()=>{});
   }
   document.getElementById('tyProduct').textContent='Monin Flavored Syrup';
-  document.getElementById('tyFlavor').textContent=flavor.value;
-  document.getElementById('tySize').textContent=size.value+' • Pack of '+packQty;
-  document.getElementById('tyQty').textContent=String(packQty);
+  document.getElementById('tyFlavor').textContent=cart.map(x=>x.flavor).join(', ');
+  document.getElementById('tySize').textContent=cart.map(x=>x.size+' • Pack of '+x.pack).join(' | ');
+  document.getElementById('tyQty').textContent=String(cart.length);
   document.getElementById('tyTotal').textContent='Rs. '+total.toLocaleString();
-  document.getElementById('tyWa').href='https://wa.me/923168119291?text='+encodeURIComponent('I placed an order for Monin Flavored Syrup - '+flavor.value+', '+size.value+', Pack of '+packQty+' - Total Rs. '+total);
+  document.getElementById('tyWa').href='https://wa.me/923168119291?text='+encodeURIComponent('I placed an order for Monin Flavored Syrup - '+itemsText+' - Total Rs. '+total);
   form.reset();
-  updateFlavors(); updatePacks();
+  cart=[];
+  updateFlavors(); updatePacks(); renderCart();
   phone.value=''; phone.setCustomValidity('');
   setTimeout(function(){
     document.getElementById('processingScreen').style.display='none';
